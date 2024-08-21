@@ -1,0 +1,61 @@
+#Extracting the active tab and breadcrumbs
+active_tab = soup.find('div', class_='contentnav contentnav_active')
+tab_text = active_tab.get_text(strip=True) if active_tab else 'N/A'
+
+#Finding the class
+breadcrumbs = soup.find('div', class_='breadcrums')  
+breadcrumbs_text = ' > '.join(span.get_text(strip=True) for span in breadcrumbs.find_all('span')) if breadcrumbs else 'N/A'
+
+known_repsource_links = f'{breadcrumbs_text} > {tab_text}'
+
+#Extracting links from 'leftcolumn'
+base_url = 'https://'
+links_data = []
+left_column_divs = soup.find_all('div', class_='leftcolumn')
+
+for div in left_column_divs:
+    a_tags = div.find_all('a')
+    for tag in a_tags:
+        href = tag.get('href')
+        text = tag.get_text(strip=True)
+        if href:
+            full_url = base_url + href if href.startswith('?') else urljoin(base_url, href)
+            #Combining the data
+            links_data.append({
+                'Known  Links': known_links,
+                'Page URL': current_url,
+                'File Title': text,
+                'URL': full_url,
+                'Main or Related': 'Main'
+            })
+            
+#Extracting links from 'relatedlinks'
+left_column_divs = soup.find_all('div', class_='relatedlinks')
+
+for div in left_column_divs:
+    a_tags = div.find_all('a')
+    for tag in a_tags:
+        href = tag.get('href')
+        text = tag.get_text(strip=True)
+        if href:
+            full_url = base_url + href if href.startswith('?') else urljoin(base_url, href)
+            #Combining the data
+            links_data.append({
+                'Known RepSource Links': known_repsource_links,
+                'Page URL': current_url,
+                'File Title': text,
+                'URL': full_url,
+                'Main or Related': 'Related'
+            })
+
+# Create a single DataFrame with the combined data
+df_combined = pd.DataFrame(links_data)
+
+# Get the current date and time as a string
+timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+# Create a unique filename using the timestamp
+filename = f'repsource_combined_output_{timestamp}.xlsx'
+
+# Write the DataFrame to the uniquely named Excel file
+df_combined.to_excel(filename, index=False)
